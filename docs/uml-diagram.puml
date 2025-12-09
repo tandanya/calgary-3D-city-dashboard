@@ -1,0 +1,106 @@
+!theme cerulean
+
+title Calgary 3D City Dashboard - System Architecture
+
+package "Frontend (React)" {
+    class App {
+        +render()
+    }
+    
+    class Dashboard {
+        -buildings: Building[]
+        -selectedBuilding: Building
+        -highlightedIds: string[]
+        +fetchBuildings()
+        +handleQuery(query: string)
+        +handleBuildingClick(building: Building)
+    }
+    
+    class CityScene {
+        -buildings: Building[]
+        -highlightedIds: string[]
+        +render3DScene()
+    }
+    
+    class Building3D {
+        -building: Building
+        -isHighlighted: boolean
+        +onClick()
+        +onHover()
+    }
+    
+    class QueryInput {
+        -query: string
+        +onSubmit()
+    }
+    
+    class BuildingPopup {
+        -building: Building
+        +displayDetails()
+    }
+}
+
+package "Backend (Flask)" {
+    class FlaskApp {
+        +get_buildings(): Response
+        +query_buildings(query: string): Response
+    }
+    
+    class DataFetcher {
+        +fetch_calgary_buildings(use_cache: boolean): Building[]
+        +fetch_from_api(): Building[]
+        +parse_number(value): float
+        +calculate_height(value): float
+    }
+    
+    class LLMHandler {
+        +process_query(query: string): FilterResult
+        +extract_json(text: string): dict
+        +fallback_parser(query: string): FilterResult
+    }
+}
+
+package "External Services" {
+    class CalgaryOpenDataAPI {
+        +getPropertyAssessments(): JSON
+        +getBuildingFootprints(): JSON
+    }
+    
+    class HuggingFaceAPI {
+        +inference(prompt: string): Response
+    }
+}
+
+entity Building {
+    +id: string
+    +address: string
+    +latitude: float
+    +longitude: float
+    +height: float
+    +zoning: string
+    +assessed_value: float
+    +building_type: string
+    +footprint: Polygon
+}
+
+entity FilterResult {
+    +attribute: string
+    +operator: string
+    +value: any
+}
+
+App --> Dashboard
+Dashboard --> CityScene
+Dashboard --> QueryInput
+Dashboard --> BuildingPopup
+CityScene --> Building3D
+
+Dashboard ..> FlaskApp : HTTP API
+FlaskApp --> DataFetcher
+FlaskApp --> LLMHandler
+DataFetcher --> CalgaryOpenDataAPI
+LLMHandler --> HuggingFaceAPI
+
+DataFetcher ..> Building : creates
+LLMHandler ..> FilterResult : creates
+@enduml
