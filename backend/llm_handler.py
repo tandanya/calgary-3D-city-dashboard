@@ -7,13 +7,20 @@ load_dotenv()
 
 HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY')
 # Using a smaller, faster model for inference
-API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
+API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
 
 def process_query(user_query):
     """
     Process natural language query using Hugging Face API.
     Returns a filter object for the building data.
     """
+    
+    print(f"\n{'='*60}")
+    print(f"🤖 LLM Query Processing")
+    print(f"{'='*60}")
+    print(f"User Query: '{user_query}'")
+    print(f"HuggingFace API Key Present: {bool(HUGGINGFACE_API_KEY)}")
+    print(f"API URL: {API_URL}")
     
     prompt = f"""<s>[INST] You are a query parser for a building database. Extract the filter criteria from the user's query.
 
@@ -47,10 +54,15 @@ Respond with ONLY the JSON object, no other text. [/INST]"""
     }
     
     try:
+        print("📡 Sending request to HuggingFace API...")
         response = requests.post(API_URL, headers=headers, json=payload, timeout=30)
+        
+        print(f"📥 Response Status: {response.status_code}")
+        
         response.raise_for_status()
         
         result = response.json()
+        print(f"📦 Raw API Response: {json.dumps(result, indent=2)}")
         
         # Extract the generated text
         if isinstance(result, list) and len(result) > 0:
@@ -58,25 +70,37 @@ Respond with ONLY the JSON object, no other text. [/INST]"""
         else:
             generated_text = str(result)
         
+        print(f"✨ Generated Text: {generated_text}")
+        
         # Parse the JSON from the response
         filter_obj = extract_json(generated_text)
         
         if filter_obj:
+            print(f"✅ LLM Successfully Parsed: {filter_obj}")
             return {
                 'success': True,
                 'filter': filter_obj,
-                'raw_response': generated_text
+                'raw_response': generated_text,
+                'source': 'LLM'  # ← ADD THIS to track source
             }
         else:
-            # Fallback to rule-based parsing
-            return fallback_parser(user_query)
+            print("⚠️ LLM returned invalid JSON, falling back to rule-based parser")
+            result = fallback_parser(user_query)
+            result['source'] = 'FALLBACK'  # ← ADD THIS
+            return result
             
     except requests.RequestException as e:
-        print(f"API Error: {e}")
-        return fallback_parser(user_query)
+        print(f"❌ API Error: {e}")
+        result = fallback_parser(user_query)
+        result['source'] = 'FALLBACK_ERROR'  # ← ADD THIS
+        return result
     except Exception as e:
-        print(f"Processing Error: {e}")
-        return fallback_parser(user_query)
+        print(f"❌ Processing Error: {e}")
+        import traceback
+        traceback.print_exc()
+        result = fallback_parser(user_query)
+        result['source'] = 'FALLBACK_EXCEPTION'  # ← ADD THIS
+        return result
 
 def extract_json(text):
     """Extract JSON object from text response."""
@@ -101,6 +125,8 @@ def fallback_parser(query):
     Rule-based fallback parser for common query patterns.
     Used when LLM is unavailable or returns invalid response.
     """
+    print(f"🔧 Using fallback parser for: '{query}'")
+    
     query_lower = query.lower()
     
     # Height queries
@@ -139,7 +165,8 @@ def fallback_parser(query):
     
     return {
         'success': False,
-        'error': 'Could not parse query. Try queries like "show buildings over 100 feet" or "highlight commercial buildings"'
+        'error': 'Could not parse query. Try queries like "show buildings over 100 feet" or "highlight commercial buildings"',
+        'source':'FALLBACK'
     }
 
 def extract_number(text):

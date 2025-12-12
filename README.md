@@ -2,7 +2,8 @@
 
 A web-based visualization of Calgary buildings using the Property Assessments Values data set. Buildings can be clicked, inspected, and using natural language queries, highlighted using a desired filter. 
 
-![Dashboard Preview](docs/city-demo.gif)
+![Dashboard Preview](docs/preview.png)
+![Showcase Gif](https://github.com/tandanya/calgary-3D-city-dashboard/blob/master/docs/city-demo.gif)
 ## Features
 - **3D Visualization**: Buildings rendered in Three.js based on City of Calgary's *Current Year Property Assessments* dataset. 
 - **AI-Powered Queries**: Natural language queries to visually filter buildings using Hugging Face LLM
