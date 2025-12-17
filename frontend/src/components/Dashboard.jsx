@@ -4,7 +4,7 @@ import QueryInput from './QueryInput';
 import BuildingPopup from './BuildingPopup';
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 function Dashboard() {
   const [buildings, setBuildings] = useState([]);
@@ -14,7 +14,6 @@ function Dashboard() {
   const [error, setError] = useState(null);
   const [queryResult, setQueryResult] = useState(null);
 
-  // Fetch buildings on mount
   useEffect(() => {
     fetchBuildings();
   }, []);
@@ -70,6 +69,25 @@ function Dashboard() {
     setQueryResult(null);
   };
 
+  const formatFilters = (filter) => {
+    if (!filter) return '';
+    
+    if (filter.filters && Array.isArray(filter.filters)) {
+      return filter.filters.map((f, idx) => (
+        <span key={idx} className="filter-item">
+          {f.attribute} {f.operator} {f.value}
+          {idx < filter.filters.length - 1 && ' AND '}
+        </span>
+      ));
+    }
+    
+    if (filter.attribute) {
+      return `${filter.attribute} ${filter.operator} ${filter.value}`;
+    }
+    
+    return JSON.stringify(filter);
+  };
+
   return (
     <div className="dashboard">
       <div className="sidebar">
@@ -80,7 +98,7 @@ function Dashboard() {
             <h3>Query Result</h3>
             <p>Found <strong>{queryResult.count}</strong> matching properties</p>
             <p className="filter-info">
-              Filter: {queryResult.filter.attribute} {queryResult.filter.operator} {queryResult.filter.value}
+              Filter: {formatFilters(queryResult.filter)}
             </p>
             <button onClick={clearHighlights} className="clear-btn">
               Clear Highlights
